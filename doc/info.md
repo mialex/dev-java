@@ -1,4 +1,15 @@
-## Creating Variables and Naming Them
+
+* [Creating Variables and Naming Them](#creating-variables-and-naming-them)
+* [Operators](#operators)
+* [Class and Methods](#class-and-methods)
+* [Numbers and String](#numbers-and-string)
+* [Inheritance](#inheritance)
+* [Interfaces](#interfaces)
+* [Generics](#generics)
+* [Generics](#generics)
+* [Lambda Expression](#lambda-expression)
+
+# Creating Variables and Naming Them
 
 As you learned in the previous section, an object stores its state in fields.
 ```java
@@ -88,7 +99,7 @@ Restriction:
 * var cannot be used for fields, not for method or constructor parameters.
 * The compiler must be able to choose a type when the variable is declared. Since null has no type, the variable must have an initializer.
 
-## Operators
+# Operators
 
 **Simple Assignment Operator**
 
