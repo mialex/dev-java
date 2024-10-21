@@ -1,13 +1,36 @@
-
+<!-- TOC -->
 * [Creating Variables and Naming Them](#creating-variables-and-naming-them)
+  * [Naming Variables](#naming-variables)
+  * [Primitive types](#primitive-types)
+  * [Var declaration](#var-declaration)
 * [Operators](#operators)
+  * [Using Switch Statements](#using-switch-statements)
 * [Class and Methods](#class-and-methods)
+    * [**Nested Classes**](#nested-classes)
+    * [Records](#records)
 * [Numbers and String](#numbers-and-string)
 * [Inheritance](#inheritance)
 * [Interfaces](#interfaces)
 * [Generics](#generics)
-* [Generics](#generics)
+    * [Wildcard](#wildcard)
+    * [Restriction on Generics](#restriction-on-generics)
 * [Lambda Expression](#lambda-expression)
+  * [System interfaces](#system-interfaces)
+    * [`Supplier<T>`](#suppliert)
+    * [`Consumer<T>`](#consumert)
+    * [`BiConsumer<T, U>`](#biconsumert-u)
+    * [` Predicate<T>`](#-predicatet)
+    * [`BiPredicate<T, U>`](#bipredicatet-u)
+    * [`Function<T, R>`](#functiont-r)
+    * [`BiFunction<T, U, R>`](#bifunctiont-u-r)
+  * [Expressions as Method References](#expressions-as-method-references)
+    * [Static Method References](#static-method-references)
+    * [Unbound Method References](#unbound-method-references)
+    * [Bound Method References](#bound-method-references)
+    * [Constructor Method References](#constructor-method-references)
+    * [Wrapping Up](#wrapping-up-)
+  * [Combining Lambda Expressions](#combining-lambda-expressions)
+<!-- TOC -->
 
 # Creating Variables and Naming Them
 
@@ -793,3 +816,569 @@ public class Example {
 ```
 
 # Lambda Expression
+
+There is a restriction on the type of a lambda expression: it has to be a functional interface.
+So an anonymous class that does not implement a functional interface cannot be written as a lambda expression.
+**Functional interface** is an interface that has only one abstract method, default and static methods do not count.
+```java
+@FunctionalInterface
+public interface Runnable {
+    public abstract void run();
+}
+```
+`@FunctionalInterface` annotation has been added as a helper, but it is not needed.
+
+Lambda expression you are writing is an implementation of the abstract method from the functional interface.
+Lambda is an instance of the interface.
+
+```java
+@FunctionalInterface
+public interface Predicate<T> {
+    boolean test(T t);
+}
+
+Predicate<String> predicate = (String s) -> {
+      return s.length() == 3;
+  };
+// or
+Predicate<String> predicateFnSimpler = s -> s.length() == 3;
+
+predicate.test("one");
+```
+
+Constraints:
+* Variable used in lambda expression should be `final` or `effectively final`. Lambdas cannot modify variables defined outside their body
+  * Lambdas cannot capture variables, they can only capture values. A final variable is in fact a value.
+
+
+There are 4 categories of interfaces:
+* the suppliers: do not take any argument, return something
+* the consumers: take an argument, do not return anything
+* the predicates: take an argument, return a boolean
+* the functions: take an argument, return something
+
+Some interfaces have versions that take two arguments instead of one:
+* the biconsumers
+* the bipredicates
+* the bifunctions
+
+Some interfaces have specialized versions, added to avoid boxing and unboxing
+
+## System interfaces
+
+### `Supplier<T>`
+
+https://docs.oracle.com/en/java/javase/23/docs/api/java.base/java/util/function/Supplier.html
+
+```java
+Random random = new Random(314L);
+Supplier<Integer> newRandom = () -> random.nextInt(10);
+
+int i = 12;
+Integer integer = i;
+```
+
+To work with primitive types there are relevant functional interfaces as:
+* `DoubleSupplier`
+* `IntSupplier`
+* `LongSupplier`
+* `BooleanSupplier`
+
+### `Consumer<T>`
+
+https://docs.oracle.com/en/java/javase/23/docs/api/java.base/java/util/function/Consumer.html
+
+```java
+Random random = new Random(314L);
+int nextRandom = newRandom.getAsInt();
+
+Consumer<String> printer = s -> System.out.println(s);
+printer.accept("next random = " + nextRandom);
+
+Consumer<Integer> printer = i -> System.out.println(i);
+printer.accept(nextRandom);
+```
+
+To work with primitive types there are relevant functional interfaces as:
+* `IntConsumer`
+* `LongConsumer`
+* `DoubleConsumer`
+
+### `BiConsumer<T, U>`
+
+Same as `Consumer<T>`, but it takes 2 arguments
+
+```java
+BiConsumer<Random, Integer> randomNumberPrinter =
+    (random, number) -> {
+        for (int i = 0; i < number; i++) {
+            System.out.println("next random = " + random.nextInt());
+        }
+    };
+
+randomNumberPrinter.accept(new Random(314L), 5));
+```
+
+To handle primitive types:
+* `ObjIntConsumer<T>`
+* `ObjLongConsumer<T>`
+* `ObjDoubleConsumer<T>`
+
+### ` Predicate<T>`
+
+A predicate is used to test an object. It is used for filtering streams in the Stream API, a topic that you will see later on.
+```java
+Predicate<String> length3 = s -> s.length() == 3;
+
+String word = "Oak";
+boolean isOfLength3 = length3.test(word);
+
+IntPredicate isGreaterThan10 = i -> i > 10;
+boolean isOfLength3 = length3.testAsInt(word);
+```
+
+To handle primitive types:
+* `IntPredicate`
+* `LongPredicate`
+* `DoublePredicate`
+
+### `BiPredicate<T, U>`
+
+```java
+Predicate<String, Integer> isOfLength = (word, length) -> word.length() == length;
+
+String word = "Hello";
+int length = 5;
+boolean isWordOfLength3 = isOfLength.test(word, length);
+```
+
+### `Function<T, R>`
+
+The abstract method of a function takes an object of type T and returns a transformation of that object to any other type U
+
+```java
+Function<String, Integer> toLength = s -> s.length();
+String word = "Hello";
+int length = toLength.apply(word);
+```
+
+| Parameter types | `T`                   | `int`                 | `long`                 | `double`               |
+|-----------------|-----------------------|-----------------------|------------------------|------------------------|
+| `T`             | `UnaryOperator<T>`    | `IntFunction<T>`      | `LongFunction<T>`      | `DoubleFunction<T>`    |
+| `int`           | `ToIntFunction<T>`    | `IntUnaryOperator`    | `LongToIntFunction`    | `DoubleToIntFunction`  |
+| `long`          | `ToLongFunction<T>`   | `IntToLongFunction`   | `LongUnaryOperator`    | `DoubleToLongFunction` |
+| `double`        | `ToDoubleFunction<T>` | `IntToDoubleFunction` | `LongToDoubleFunction` | `DoubleUnaryOperator`  |
+
+
+### `BiFunction<T, U, R>`
+
+The interface is `BiFunction<T, U, R>`, where `T` and `U` are the arguments and `R` the returned type
+
+```java
+BiFunction<String, String, Integer> findWordInSentence = (word, sentence) -> sentence.indexOf(word);
+```
+
+* `BinaryOperator<T>` (= `BiFunction<T, T, T>`)
+* `IntBinaryOperator`
+* `LongBinaryOperator`
+* `DoubleBinaryOperator`
+* `ToIntBiFunction<T>`
+* `ToLongBiFunction<T>`
+* `ToDoubleBiFunction<T>`
+
+## Expressions as Method References
+
+```java
+Consumer<String> printer = System.out::println;
+```
+
+There are four categories of method references:
+* Static method references
+* Bound method references
+* Unbound method references
+* Constructor method references
+
+### Static Method References
+
+The general syntax of a static method reference is: `RefType::staticMethod`
+
+```java
+DoubleUnaryOperator sqrt = a -> Math.sqrt(a);
+DoubleUnaryOperator sqrt = Math::sqrt;
+
+IntBinaryOperator max = (a, b) -> Integer.max(a, b);
+IntBinaryOperator max = Integer::max;
+```
+### Unbound Method References
+
+The general syntax of a unbound method reference is the following: `RefType:instanceMethod`
+
+```java
+Function<String, Integer> toLength = s -> s.length();
+Function<String, Integer> toLength = String::length;
+
+Function<User, String> getName = user -> user.getName();
+Function<User, String> getName = User::getName;
+
+```
+
+### Bound Method References
+
+The general syntax of a bound method reference is the following: `expr:instanceMethod`
+This method reference is called a bound method reference.
+This method reference is called bound because the object on which the method is called is defined in the method reference itself.
+So this call is bound to the object given in the method reference.
+
+```java
+Consumer<String> printer = System.out::println;
+```
+### Constructor Method References
+
+```java
+Supplier<List<String>> newListOfStrings = ArrayList::new;
+// or
+Supplier<List<String>> newListOfStrings = ArrayList<String>::new;
+```
+
+### Wrapping Up 
+| Name            | Syntax                    | Lambda equivalent                           |
+|-----------------|---------------------------|---------------------------------------------|
+| **Static**      | `RefType::staticMethod`   | `(args) -> RefType.staticMethod(args)`      |
+| **Bound**       | `expr::instanceMethod`    | `(args) -> expr.instanceMethod(args)`       |
+| **Unbound**     | `RefType::instanceMethod` | `(arg0, rest) -> arg0.instanceMethod(rest)` |
+| **Constructor** | `ClassName::new`          | `(args) -> new ClassName(args)`             |
+
+## Combining Lambda Expressions
+
+### Chaining Predicates with Default Methods
+
+To filter method  by multiple rules we can do
+```java
+Predicate<String> p = s -> (s != null) && !s.isEmpty() && s.length() < 5;
+```
+With the help of default methods it can be done as
+```java
+Predicate<String> nonNull = s -> s != null;
+Predicate<String> nonEmpty = s -> !s.isEmpty();
+Predicate<String> shorterThan5 = s -> s.length() < 5;
+
+Predicate<String> p = nonNull.and(nonEmpty).and(shorterThan5);
+```
+
+### Chaining and Composing Functions
+
+Suppose you have two functions `f1` and `f2`. You can chain them by calling `f1.andThen(f2`).
+Applying the resulting function to an object will first pass this object to `f1` and the result to `f2`.
+
+The `Function` interface has a second default method: `f2.compose(f1)`.
+Written in this way, the resulting function will first process an object by passing it to the `f1` function and then the result is passed to `f2`.
+
+What you need to realize is that to get the same resulting function, you need to call `andThen()` on `f1` or `compose()` on `f2`.
+
+### Comparators
+
+
+# Annotations
+
+## The Format of an Annotation
+
+```java
+@Override
+```
+```java
+@Author(
+        name = "Benjamin Franklin",
+        date = "3/27/2003"
+)
+```
+```java
+@SuppressWarnings(value = "unchecked")
+```
+If there is just one element named value, then the name can be omitted, as in:
+```java
+@SuppressWarnings("unchecked")
+```
+It is also possible to use multiple annotations
+```java
+@Author(name = "Jane Doe")
+@EBook
+```
+Repeating annotation
+```java
+@Author(name = "Jane Doe")
+@Author(name = "John Smith")
+```
+
+## Where Annotations Can Be Used
+
+Class instance creation expression:
+```java
+new @Interned MyObject();
+```
+Type cast:
+```java
+myString = (@NonNull String) str;
+```
+implements clause:
+```java
+class UnmodifiableList<T> implements @Readonly List<@Readonly T> { ... }
+```
+Thrown exception declaration:
+```java
+void monitorTemperature() throws @Critical TemperatureException { ... }
+```
+
+## Declaring an Annotation Type
+
+Annotation types are a form of interface. The body of annotation definition contains annotation type element declarations, which look a lot like methods.
+Note that they can define optional `default` values.
+```java
+@interface ClassPreamble {
+   String author();
+   int currentRevision() default 1;
+   String lastModifiedBy() default "N/A";
+   String[] reviewers();
+}
+```
+```java
+@ClassPreamble (
+   author = "John Doe",
+   currentRevision = 6,
+   lastModifiedBy = "Jane Doe",
+   reviewers = {"Alice", "Bob", "Cindy"}
+)
+public class Generation3List extends Generation2List { ... }
+```
+To make the information appear in Javadoc-generated documentation, you must annotate it with the `@Documented` annotation:
+```java
+import java.lang.annotation.Documented;
+
+@Documented
+@interface ClassPreamble {
+   // Annotation element definitions
+}
+```
+## Predefined Annotation Types
+
+* `@Deprecated` -  annotation indicates that the marked element is deprecated and should no longer be used
+* `@Override` - informs the compiler that the element is meant to override an element declared in a superclass
+* `@SuppressWarnings` - tells the compiler to suppress specific warnings that it would otherwise generate
+* `@SafeVarargs` - when applied to a method or constructor, asserts that the code does not perform potentially unsafe operations on its varargs parameter
+* `@FunctionalInterface` - indicates that the type declaration is intended to be a functional interface
+
+### Annotations That Apply to Other Annotations
+
+* `@Retention` - specifies how the marked annotation is stored: 
+  * `RetentionPolicy.SOURCE`
+  * `RetentionPolicy.CLASS`
+  * `RetentionPolicy.RUNTIME`
+* `@Documented` -  indicates that whenever the specified annotation is used those elements should be documented using the Javadoc too
+* `@Target` - marks another annotation to restrict what kind of Java elements the annotation can be applied to
+  * `ElementType.ANNOTATION_TYPE`
+  * `ElementType.CONSTRUCTOR`
+  * `ElementType.FIELD`
+  * `ElementType.LOCAL_VARIABLE`
+  * `ElementType.METHOD`
+  * `ElementType.MODULE`
+  * `ElementType.PACKAGE`
+  * `ElementType.PARAMETER`
+  * `ElementType.RECORD_COMPONENT`
+  * `ElementType.TYPE`
+  * `ElementType.TYPE_PARAMETER`
+  * `ElementType.TYPE_USE`
+* `@Inherited` - indicates that the annotation type can be inherited from the super class
+* `@Repeatable` - indicates that the marked annotation can be applied more than once to the same declaration or type use
+
+## Retrieving Annotations
+
+There are several methods available in the **Reflection API** that can be used to retrieve annotations.
+The behavior of the methods that return a single annotation, such as `AnnotatedElement.getAnnotation(Class)`,
+are unchanged in that they only return a single annotation if one annotation of the requested type is present.
+If more than one annotation of the requested type is present, you can obtain them by first getting their container annotation.
+In this way, legacy code continues to work. Other methods were introduced in Java SE 8 that scan through the container annotation to return multiple annotations at once,
+such as `AnnotatedElement.getAnnotationsByType(Class)`. See the `AnnotatedElement` class specification for information on all of the available methods.
+
+# Pattern Matching
+
+Regular expressions are a form of pattern matching that has been created to analyze strings of characters.
+```java
+String sonnet = "From fairest creatures we desire increase,\n" +
+        "That thereby beauty's rose might never die,\n";
+
+Pattern pattern = Pattern.compile("\\bflame\\b");
+Matcher matcher = pattern.matcher(sonnet);
+
+while (matcher.find()) {
+    String group = matcher.group();
+    int start = matcher.start();
+    int end = matcher.end();
+    System.out.println(group + " " + start + " " + end);
+}
+```
+
+### Matching for `Instanceof`
+
+```java
+public void print(Object o) {
+    if (o instanceof String s  && !s.isEmpty()) {
+        System.out.println("This is a String of length " + s.length());
+    } else {
+        System.out.println("This is not a String");
+    }
+}
+
+public boolean equals(Object o) {
+  return o instanceof Point point &&
+          x == point.x &&
+          y == point.y;
+}
+```
+
+###  Matching for `Switch`
+
+The next code
+```java
+Object o = ...; // any object
+String formatted = null;
+if (o instanceof Integer i) {
+    formatted = String.format("int %d", i);
+} else if (o instanceof Long l) {
+    formatted = String.format("long %d", l);
+} else if (o instanceof Double d) {
+    formatted = String.format("double %f", d);
+} else {
+    formatted = String.format("Object %s", o.toString());
+}
+```
+can be simplified to the
+```java
+Object o = ...; // any object
+String formatter = switch(o) {
+    case Integer i -> String.format("int %d", i);
+    case Long l    -> String.format("long %d", l);
+    case Double d  -> String.format("double %f", d);
+    default        -> String.format("Object %s", o.toString());
+};
+```
+
+### Guarded Patterns
+
+In switch expressions, case labels **cannot be** boolean
+```java
+Object o = ...; // any object
+String formatter = switch(o) {
+    // !!! THIS DOES NOT COMPILE !!!
+    case String s && !s.isEmpty() -> String.format("Non-empty string %s", s);
+    case Object o                 -> String.format("Object %s", o.toString());
+};
+```
+
+The pattern matching for **switch** has been extended to allow for a boolean expression to be added after the type pattern.
+This boolean expression is called a **guard** and the resulting case label a **guarded case label**.
+Here `when` clause is used
+```java
+Object o = ...; // any object
+String formatter = switch(o) {
+    case String s when !s.isEmpty() -> String.format("Non-empty string %s", s);
+    default                         -> String.format("Object %s", o.toString());
+};
+```
+
+### `Record` Pattern
+
+```java
+public record Point(int x, int y) {}
+
+Object o = ...; // any object
+if (o instanceof Point(int x, int y)) {
+    // do something with x and y
+}
+```
+```java
+record Point(double x, double y) {}
+
+Object o == ...; // any object
+if (o instanceof Point(var x, var y)) {
+    // x and y are of type double
+}
+```
+```java
+record Box(Object o) {}
+
+Object o = ...; // any object
+switch (o) {
+    case Box(String s)  -> System.out.println("Box contains the string: " + s);
+    case Box(Integer i) -> System.out.println("Box contains the integer: " + i);
+    default -> System.out.println("Box contains something else");
+}
+```
+```java
+record Point(double x, double y) {}
+record Circle(Point center, double radius) {}
+
+Object o = ...; // any object
+if (o instanceof Circle(Point(var x, var y), var radius)) {
+    // Do something with x, y and radius
+}
+```
+Record patterns do not support boxing nor unboxing. So the following code is not valid.
+```java
+record Point(Integer x, Integer y) {}
+
+Object o = ...; // any object
+// !!! DOES NOT COMPILE !!!
+if (o instanceof Point(int x, int y)) {
+}
+```
+
+# Exception
+
+* `Checked exception` - are exceptional conditions that a well-written application should anticipate and recover from
+  *  catch the exception and notify the user of the mistake.
+* `Error` -  are exceptional conditions that are external to the application, and that the application usually cannot anticipate or recover from
+  * Errors are not subject to the Catch or Specify Requirement.
+* `RuntimeException` - exceptional conditions that are internal to the application, and that the application usually cannot anticipate or recover from
+  * These usually indicate programming bugs, such as logic errors or improper use of an API
+  * Runtime exceptions are not subject to the Catch or Specify Requirement
+
+Unchecked exception better to catch with the try/catch, but they should not be defined in the method.
+Declares the type of exception that the handler can handle and must be the name of a class that inherits from the `Throwable` class.
+
+```java
+try {
+    // The get(int) method throws IndexOutOfBoundsException, which must be caught.
+    // it is unchecked exception as IndexOutOfBoundsException extends RuntimeException
+    // in this case it's better to catch it
+    out.println("Value at: " + i + " = " + list.get(i));
+} catch (IndexOutOfBoundsException e) {
+    System.err.println("IndexOutOfBoundsException: " + e.getMessage());
+} catch (IOException|SQLException ex) {
+    logger.log(ex);
+    System.err.println("Caught IOException: " + e.getMessage());
+} finally {
+    if (out != null) {
+        out.close();
+    }
+}
+```
+Putting cleanup code in a `finally` block is always a good practice, even when no exceptions are anticipated.
+
+If a catch block handles more than one exception type, then the catch parameter is implicitly final.
+In this example, the catch parameter ex is final and therefore you cannot assign any values to it within the catch block.
+
+The `finally` block is a key tool for preventing resource leaks.
+
+### Try-with-resources
+
+A resource is an object that must be closed after the program is finished with it. The try-with-resources statement ensures that each resource is closed at the end of the statement.
+Any object that implements `java.lang.AutoCloseable`, which includes all objects which implement `java.io.Closeable`, can be used as a resource.
+
+```java
+static String readFirstLineFromFile(String path) throws IOException {
+    try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+        return br.readLine();
+    }
+}
+```
+
+It will be closed regardless of whether the try statement completes normally or abruptly

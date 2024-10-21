@@ -22,6 +22,12 @@ public class Main {
         var generics = new org.example.o5_Generics.Main();
         generics.run();
 
+        var lambda = new org.example.o6_Lambda.Main();
+        lambda.run();
+
+        var exception = new org.example.o7_Exception.Main();
+        exception.run();
+
         System.out.println("\n\n\nFINISH MAIN");
     }
 }
