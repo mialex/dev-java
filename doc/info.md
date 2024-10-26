@@ -1,3 +1,5 @@
+**SOURCE**: https://dev.java/learn/
+
 <!-- TOC -->
 * [Creating Variables and Naming Them](#creating-variables-and-naming-them)
   * [Naming Variables](#naming-variables)
@@ -30,6 +32,40 @@
     * [Constructor Method References](#constructor-method-references)
     * [Wrapping Up](#wrapping-up-)
   * [Combining Lambda Expressions](#combining-lambda-expressions)
+    * [Chaining Predicates with Default Methods](#chaining-predicates-with-default-methods)
+    * [Chaining and Composing Functions](#chaining-and-composing-functions)
+    * [Comparators](#comparators)
+* [Annotations](#annotations)
+  * [The Format of an Annotation](#the-format-of-an-annotation)
+  * [Where Annotations Can Be Used](#where-annotations-can-be-used)
+  * [Declaring an Annotation Type](#declaring-an-annotation-type)
+  * [Predefined Annotation Types](#predefined-annotation-types)
+    * [Annotations That Apply to Other Annotations](#annotations-that-apply-to-other-annotations)
+  * [Retrieving Annotations](#retrieving-annotations)
+* [Pattern Matching](#pattern-matching)
+    * [Matching for `Instanceof`](#matching-for-instanceof)
+    * [Matching for `Switch`](#matching-for-switch)
+    * [Guarded Patterns](#guarded-patterns)
+    * [`Record` Pattern](#record-pattern)
+* [Exception](#exception)
+    * [Try-with-resources](#try-with-resources)
+* [Imperative to the Functional Style](#imperative-to-the-functional-style)
+    * [Simple Loops `for() => range() or rangeClosed()`](#simple-loops-for--range-or-rangeclosed)
+    * [Loops with Steps `for(...i = i + ...)  => iterate() with takeWhile()`](#loops-with-steps-fori--i-----iterate-with-takewhile)
+    * [Foreach with if `foreach(...) { if... } => stream() with filter()`](#foreach-with-if-foreach--if---stream-with-filter)
+    * [Iteration with transformation `foreach(...) { ...transform... } => stream() with map()`](#iteration-with-transformation-foreach--transform---stream-with-map)
+* [The Collections Framework](#the-collections-framework)
+  * [Collection](#collection)
+    * [List vs. Collection](#list-vs-collection)
+    * [Set vs. Collection](#set-vs-collection)
+    * [ArrayList](#arraylist)
+    * [Array](#array)
+    * [Iterating over Collection](#iterating-over-collection)
+    * [Set, HashSet](#set-hashset)
+    * [Collections Factory Methods](#collections-factory-methods)
+    * [Arrays and Collections](#arrays-and-collections)
+    * [Modeling Queues and Stacks](#modeling-queues-and-stacks)
+  * [Using Maps to Store Key Value Pairs](#using-maps-to-store-key-value-pairs)
 <!-- TOC -->
 
 # Creating Variables and Naming Them
@@ -1382,3 +1418,372 @@ static String readFirstLineFromFile(String path) throws IOException {
 ```
 
 It will be closed regardless of whether the try statement completes normally or abruptly
+
+# Imperative to the Functional Style
+
+| Imperative Style                      | Functional Style Equivalent |
+|---------------------------------------|-----------------------------|
+| for()                                 | range() or rangeClosed()    |
+| for(...i = i + ...)                   | iterate() with takeWhile()  |
+| foreach(...) { if... }                | stream() with filter()      |
+| foreach(...) { ...transformation... } | stream() with map()         |
+| File read operation                   | Files.lines()               |
+
+### Simple Loops `for() => range() or rangeClosed()`
+
+```java
+// Before
+for(int i = 0; i < 5; i++) {
+    System.out.println(i);
+}
+
+// After
+import java.util.stream.IntStream;
+...
+// IntStream.rangeClosed(0, 5) when i <= 5;
+IntStream.range(0, 5)
+    .forEach(System.out::println);
+```
+
+### Loops with Steps `for(...i = i + ...)  => iterate() with takeWhile()`
+
+```java
+// Before
+for(int i = 0; i < 15; i = i + 3) {
+    System.out.println(i);
+}
+
+// After
+import java.util.stream.IntStream;
+...
+IntStream.iterate(0, i -> i < 15, i -> i + 3)
+    .forEach(System.out::println);
+```
+
+```java
+// Before
+for(int i = 0;; i = i + 3) {
+    if(i > 20) {
+      break;
+    }
+
+    System.out.println(i);
+}
+
+// After
+IntStream.iterate(0, i -> i + 3)
+    .takeWhile(i -> i <= 20)
+    .forEach(System.out::println);
+```
+
+### Foreach with if `foreach(...) { if... } => stream() with filter()`
+
+```java
+List<String> names = List.of("Jack", "Paula", "Kate", "Peter");
+
+// Before
+for(String name: names) {
+    System.out.println(name);
+}
+
+// After
+names.forEach(name -> System.out.println(name));
+// or
+ names.stream().forEach(name -> System.out.println(name));
+```
+
+```java
+List<String> names = List.of("Jack", "Paula", "Kate", "Peter");
+
+// Before
+for(String name: names) {
+    if(name.length() == 4) {
+      System.out.println(name);
+    }
+}
+
+// After
+names.stream()
+    .filter(name -> name.length() == 4)
+    .forEach(name -> System.out.println(name));
+```
+
+### Iteration with transformation `foreach(...) { ...transform... } => stream() with map()`
+
+```java
+List<String> names = List.of("Jack", "Paula", "Kate", "Peter");
+
+// Before
+for(String name: names) {
+    System.out.println(name.toUpperCase());
+}
+
+// After
+names.stream()
+    .map(name -> name.toUpperCase())
+    .forEach(nameInUpperCase -> System.out.println(nameInUpperCase));
+// or
+names.stream()
+    // .filter(name -> name.length() == 4) // can be used also
+    .map(String::toUpperCase)
+    .forEach(System.out::println);
+```
+
+# The Collections Framework
+
+## Collection
+
+![collection-hierarchy.png](images/collection-hierarchy.png)
+
+https://www.codejava.net/java-core/collections/overview-of-java-collections-framework-api-uml-diagram
+
+![collection-hierarchy-full.png](images/collection-hierarchy-full.png)
+
+**Documentation**: https://docs.oracle.com/en/java/javase/22/docs/api/java.base/java/util/doc-files/coll-reference.html
+
+###  List vs. Collection
+
+The difference between a `List` of elements and a `Collection` of elements, is that a `List` remembers in what order its elements have been added.
+The order you will iterate over the elements is always the same, it is fixed by the order in which these elements have been added.
+
+###  Set vs. Collection
+
+The difference between a `Set` of elements and a `Collection` of elements, is that you cannot have duplicates in a `Set`.
+Adding an element to a `Set` may fail.
+
+### ArrayList
+
+```java
+Collection<String> strings = new ArrayList<>();
+
+strings.add("one");
+strings.add("two");
+strings.remove("one");
+strings.contains("one");
+
+
+```
+
+### Array
+
+```java
+Collection<String> strings = List.of("one", "two");
+
+String[] largerTab = {"three", "three", "three", "I", "was", "there"};
+System.out.println("largerTab = " + Arrays.toString(largerTab));
+
+String[] result = strings.toArray(largerTab);
+System.out.println("result = " + Arrays.toString(result));
+
+// largerTab = [three, three, three, I, was, there]
+// result = [one, two, null, I, was, there]
+```
+
+### Iterating over Collection
+
+```java
+Collection<String> strings = List.of("one", "two", "three");
+
+for (String element: strings) {
+    System.out.println(element);
+}
+```
+
+`Iterator` is part of `Iterable` and so is implemented by any interface of collection hierarchy.
+```java
+Collection<String> strings = List.of("one", "two", "three");
+
+for (Iterator<String> iterator = strings.iterator(); iterator.hasNext();) {
+    String element = iterator.next();
+    // ...
+}
+```
+
+### Set, HashSet
+
+`Set` brings to a Collection is that it forbids duplicates.
+
+```java
+List<String> strings = List.of("one", "two", "three", "four", "five", "six");
+Set<String> set = new HashSet<>();
+set.addAll(strings);
+```
+
+```java
+SortedSet<String> strings = new TreeSet<>(Set.of("a", "b", "c", "d", "e", "f"));
+SortedSet<String> subSet = strings.subSet("aa", "d");
+```
+
+```java
+NavigableSet<String> sortedStrings = new TreeSet<>(Set.of("a", "b", "c", "d", "e", "f"));
+NavigableSet<String> reversedStrings = sortedStrings.descendingSet();
+```
+
+### Collections Factory Methods
+
+`of` method:
+```java
+List<String> stringList = List.of("one", "two", "three");
+Set<String> stringSet = Set.of("one", "two", "three");
+```
+
+`copyOf` method:
+```java
+Collection<String> strings = Arrays.asList("one", "two", "three");
+
+List<String> list = List.copyOf(strings);
+Set<String> set = Set.copyOf(strings);
+```
+
+* None of them is `ArrayList` or `HashSet`, so your code should not rely on that.
+* Both the list and the set you get are **immutable** structures.
+* These structures do **not accept null** values
+
+### Arrays and Collections
+
+* `Arrays`
+  * https://docs.oracle.com/en/java/javase/23/docs/api/java.base/java/util/Arrays.html
+  * This class contains various methods for manipulating arrays
+* `Collections`
+  * https://docs.oracle.com/en/java/javase/23/docs/api/java.base/java/util/Collections.html
+  * This class consists exclusively of static methods that operate on or return collections.
+
+```java
+List<String> strings = Arrays.asList("0", "1", "2", "3", "4");
+List<String> immutableStrings = Collections.unmodifiableList(strings);
+```
+
+### Modeling Queues and Stacks
+
+![collections-queue.png](images/collections-queue.png)
+
+* the `Queue` interface models a queue;
+* the `Deque` interface models a double ended queue (thus the name). You can `push`, `pop`, `poll` and `peek` elements on both the tail and the head of a `Deque`, making it both a queue and a stack.
+
+These structures are very simple and gives you three main operations.
+
+* `push(element)`: adds an element to the queue, or the stack
+* `pop()`: removes an element from the stack, that is, the youngest element added
+* `poll()`: removes an element from the queue, that is, the oldest element added
+* `peek()`: allows you to see the element you will get with a pop() or a poll(), but without removing it from the queue of the stack.
+
+FIFO `Queue`
+
+| Operation | Method           | Behavior when the queue is full or empty |
+|-----------|------------------|------------------------------------------|
+| push      | `add(element)`   | throws an IllegalStateException          |
+|           | `offer(element)` | returns false                            |
+| poll      | `remove() `      | throws a NoSuchElementException          |
+|           | `poll() `        | returns false                            |
+| peek      | `element() `     | throws a NoSuchElementException          |
+|           | `peek()`         | returns null                             |
+
+LIFO Stacks and FIFO `Deque`
+
+| FIFO Operation | Method               | Behavior when the queue is full or empty |
+|----------------|----------------------|------------------------------------------|
+| push           | `addLast(element)`   | throws an IllegalStateException          |
+|                | `offerLast(element)` | returns false                            |
+| poll           | `removeFirst()`      | throws a NoSuchElementException          |
+|                | `pollFirst()`        | returns null                             |
+| peek           | `getFirst()`         | throws a NoSuchElementException          |
+|                | `peekFirst()`        | returns null                             |
+
+| LIFO Operation | Method                | Behavior when the queue is full or empty |
+|----------------|-----------------------|------------------------------------------|
+| push           | `addFirst(element)`   | throws an IllegalStateException          |
+|                | `offerFirst(element)` | returns false                            |
+| pop            | `removeFirst()`       | throws a NoSuchElementException          |
+|                | `pollFirst()`         | returns null                             |
+| peek           | `getFirst()`          | throws a NoSuchElementException          |
+|                | `peekFirst()`         | returns null                             |
+
+**Implementation**
+
+* `ArrayDeque`: which implements both. This implementation is backed by an array. The capacity of this class automatically grows as elements are added.
+  So this implementation always accepts new elements.
+* `LinkedList`: which also implements both. This implementation is backed by a linked list, making the access to its first and last element very efficient.
+  A LinkedList will always accept new elements.
+* `PriorityQueue`: that only implements Queue. This queue is backed by an array that keeps its elements sorted by their natural order or by an order specified by a Comparator.
+  \ The head of this queue is always the least element of the queue with respect to the specified ordering. 
+  \ The capacity of this class automatically grows as elements are added.
+
+## Using Maps to Store Key Value Pairs
+
+A hashmap is a structure able to store key-value pairs. The value is any object your application needs to handle, and a key is something that can represent this object.
+n a nutshell, choosing a mutable key is not prohibited but is dangerous and discouraged. Once a key has been added to a map, mutating it may lead to changing its hash code value, and its identity.
+The `Map` defines a member interface: `Map.Entry` to model a key-value pair.
+
+![hashmap-hierarchy.png](images/hashmap-hierarchy.png)
+
+* A hashmap can store key-value pairs
+* A key acts as a symbol for a given value
+* A key is a simple object, a value can be as complex as needed
+* A key is unique in a hashmap, a value does not have to be unique
+* Every value stored in a hashmap has to be bound to a key, a key-value pair in a map forms an entry of that map
+* A key can be used to retrieve its bound value.
+
+Implementation
+
+* `HashMap`
+* `LinkedHashMap` is a HashMap with an internal structure to keep the key-value pairs ordered. Iterating on the keys or the key-value pairs will follow the order in which you have added your key-value pairs.
+* `IdentityHashMap` is a specialized Map that you should only be used in very precise cases.
+  \ This implementation is not meant to be generally used in application. Instead of using equals() and hashCode() to compare the key objects, this implementation only compares the references to these keys, with an equality operator (==). 
+  \ Use it with caution, only if you are sure this is what you need.
+
+```java
+Map<Integer, String> map = Map.of(
+    1, "one",
+    2, "two"
+);
+
+// or
+
+Map<Integer, String> map3 = Map.ofEntries(
+    Map.entry(1, "one"),
+    Map.entry(2, "two")
+);
+```
+
+* The map and the entries you get are immutable objects
+* **Null** entries, **null** keys, and **null** values are not allowed
+* Trying to create a map with duplicate keys in this way does not make sense, so as a warning you will get an `IllegalArgumentException` at map creation.
+
+**Main methods**
+
+* `put`
+  * `map.put("one", 1)`
+* `putIfAbsent`
+  * `map.putIfAbsent(key, -1);`
+  * if the key is not already present and not associated to a null value
+* `get`
+* `getOrDefault`
+  * `map.getOrDefault(key,"UNDEFINED")`
+* `remove`
+  * `remove(key)`
+* `containsKey(key)`
+* `containsValue(value)`
+* `keySet`
+  * returns an instance of `Set`, containing the keys defined in the map
+* `entrySet()`
+  * returns an instance of `Set<Map.Entry>`, containing the key/value pairs contained in the map
+* `values()`
+  * returns an instance of `Collection`, containing the values present in the map.
+* `replace(key, value)`
+  * put-if-present operation. Replaces the existing value with the new one, blindly.
+* `replace(key, existingValue, newValue)`
+* `replaceAll()`
+* `compute()`
+  * remapping values
+* 
+
+# Streams
+
+A stream is an object that does not store any data.
+A stream processes the data in the same order as if you write an equivalent for loop. In this way there is no memory overhead.
+A pipeline is made of a series of method calls on a stream. Each call produces another stream. Then at some point, a last call produces a result.
+An operation that returns another stream is called an **intermediate operation**. On the other hand, an operation that returns something else, including void, is called a **terminal operation**.
+
+It is allowed to call only one method on a stream, even if this method is intermediate.
+So it is useless, and sometimes dangerous, to store streams in fields or local variables.
+

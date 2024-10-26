@@ -28,6 +28,12 @@ public class Main {
         var exception = new org.example.o7_Exception.Main();
         exception.run();
 
+        var collection = new org.example.o8_Collections.Main();
+        collection.run();
+
+        var streams = new org.example.o9_Streams.Main();
+        streams.run();
+
         System.out.println("\n\n\nFINISH MAIN");
     }
 }
